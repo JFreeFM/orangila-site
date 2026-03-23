@@ -2,14 +2,18 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import UTC, datetime
 from html import escape
 from pathlib import Path
 from typing import Any
 
 
-REPORTS_DIR = Path("/home/jeffreyklein/dayzserver/reports")
-SITE_DIR = Path("/home/jeffreyklein/orangila-site/site")
+ROOT = Path(__file__).resolve().parents[1]
+REPORTS_DIR = Path(
+    os.environ.get("ORANGILA_REPORTS_DIR", str(ROOT.parent / "dayzserver" / "reports"))
+)
+SITE_DIR = ROOT / "site"
 STATUS_DIR = SITE_DIR / "status"
 PUBLIC_DATA_PATH = SITE_DIR / "status-data.json"
 RECENT_FIXES_PATH = REPORTS_DIR / "recent-fixes.json"
@@ -53,6 +57,10 @@ def item_label(title: str, qualifier: str | None = None) -> str:
     return label
 
 
+def plain_title(title: str) -> str:
+    return clean_item(title)
+
+
 def distinct(items: list[str]) -> list[str]:
     seen: set[str] = set()
     result: list[str] = []
@@ -74,6 +82,38 @@ def is_completed_item(text: str) -> bool:
     return any(marker in low for marker in completed_markers)
 
 
+def rewrite_progress_item(text: str) -> str:
+    clean = clean_item(text)
+    rewrites = {
+        "Create pinned Discord starter guide with trader locations and rules":
+            "Improve the starter guide so new players can get in faster.",
+        "Adjust basic repair item prices in trader configuration":
+            "Tune trader pricing for basic repair items.",
+        "Investigate server performance and zombie AI synchronization near Novy Sobor and Staroye during peak population":
+            "Improve zombie performance and stability around busy areas like Novy Sobor and Staroye.",
+        "Fix trader UI scroll event handling to prevent transaction interruption":
+            "Improve trader menu stability during fast scrolling.",
+    }
+    return rewrites.get(clean, clean)
+
+
+def rewrite_recent_fix(title: str, description: str, date: str) -> str:
+    title_clean = clean_item(title)
+    desc_clean = clean_item(description)
+    rewrites = {
+        "Discord restart countdown live": "Discord restart warnings now post before scheduled restarts",
+        "Krona trader survivor issue removed": "The broken Krona trader survivor issue was removed",
+        "Krona trader fallback switched to signs and marker boards": "Krona trading now uses stable signs and marker boards",
+        "RCON chat delivery restored": "Discord and admin chat delivery was restored",
+    }
+    label = rewrites.get(title_clean, title_clean or desc_clean)
+    if not label:
+        return ""
+    if date:
+        return f"{label} ({date})"
+    return label
+
+
 def map_public_sections(report: dict[str, Any]) -> dict[str, Any]:
     top_bugs = report.get("top_bugs") if isinstance(report.get("top_bugs"), list) else []
     top_requests = report.get("top_feature_requests") if isinstance(report.get("top_feature_requests"), list) else []
@@ -84,38 +124,36 @@ def map_public_sections(report: dict[str, Any]) -> dict[str, Any]:
     meta = report.get("meta") if isinstance(report.get("meta"), dict) else {}
 
     known_issues = [
-        item_label(str(item.get("title") or ""), str(item.get("priority") or "").lower() or None)
+        plain_title(str(item.get("title") or ""))
         for item in top_bugs
         if isinstance(item, dict)
     ]
     recurring_issue_titles = [
-        item_label(str(item.get("title") or ""), str(item.get("type") or "").lower() or None)
+        plain_title(str(item.get("title") or ""))
         for item in recurring
         if isinstance(item, dict)
     ]
     planned_requested = [
-        item_label(str(item.get("title") or ""), str(item.get("impact") or "").lower() or None)
+        plain_title(str(item.get("title") or ""))
         for item in top_requests
         if isinstance(item, dict)
     ]
     planned_requested = [item for item in distinct(planned_requested) if not is_completed_item(item)]
-    in_progress = [clean_item(str(item)) for item in quick_wins[:3]] + [clean_item(str(item)) for item in actions[:2]]
+    in_progress = [rewrite_progress_item(str(item)) for item in quick_wins[:3]] + [
+        rewrite_progress_item(str(item)) for item in actions[:2]
+    ]
     in_progress = [item for item in distinct(in_progress) if not is_completed_item(item)]
 
     recent_fixes_raw = load_json_array(RECENT_FIXES_PATH)
     recent_fixes_raw.sort(key=lambda item: str(item.get("date") or ""), reverse=True)
     recently_fixed = []
-    for item in recent_fixes_raw[:5]:
-        title = clean_item(str(item.get("title") or ""))
-        description = clean_item(str(item.get("description") or ""))
+    for item in recent_fixes_raw[:4]:
+        title = str(item.get("title") or "")
+        description = str(item.get("description") or "")
         date = clean_item(str(item.get("date") or ""))
-        if not title:
+        label = rewrite_recent_fix(title, description, date)
+        if not label:
             continue
-        label = title
-        if description:
-            label = f"{label} - {description}"
-        if date:
-            label = f"{label} ({date})"
         recently_fixed.append(label)
 
     notes = []
@@ -135,17 +173,9 @@ def map_public_sections(report: dict[str, Any]) -> dict[str, Any]:
         except ValueError:
             generated_at = generated_at_raw
 
-    source_channels = [
-        clean_item(str(item.get("name") or ""))
-        for item in meta.get("source_channels", [])
-        if isinstance(item, dict) and clean_item(str(item.get("name") or ""))
-    ]
-
     return {
         "reporting_period": reporting_period,
         "generated_at": generated_at,
-        "messages_processed": int(summary.get("messages_processed") or 0),
-        "source_channels": source_channels,
         "known_issues": distinct(known_issues + recurring_issue_titles),
         "in_progress": in_progress,
         "planned_requested": planned_requested,
@@ -165,7 +195,6 @@ def render_list(items: list[str], empty_text: str) -> str:
 
 
 def render_page(public_data: dict[str, Any]) -> str:
-    source_labels = ", ".join(f"#{name}" for name in public_data["source_channels"]) or "Discord feedback channels"
     return f"""<!doctype html>
 <html lang="en">
   <head>
@@ -187,26 +216,22 @@ def render_page(public_data: dict[str, Any]) -> str:
       <div class="glow glow-b"></div>
       <main class="hero-stage status-stage">
         <section class="status-hero-card">
-          <p class="eyebrow">Public Status</p>
-          <h1>Server Status & Roadmap</h1>
+          <p class="eyebrow">Player Update</p>
+          <h1>Server Status & What We Are Working On</h1>
           <p class="intro">
-            A simple public view of the main issues, improvements, and active work for OranGila DayZ.
+            A simple public view of what was fixed recently, what players are running into, and what is being improved next.
           </p>
           <div class="status-summary-grid">
             <section>
-              <h2>Reporting Period</h2>
+              <h2>Feedback Window</h2>
               <p>{escape(public_data["reporting_period"])}</p>
             </section>
             <section>
-              <h2>Messages Reviewed</h2>
-              <p>{public_data["messages_processed"]}</p>
+              <h2>Based On</h2>
+              <p>Recent community feedback and confirmed fixes.</p>
             </section>
             <section>
-              <h2>Source Channels</h2>
-              <p>{escape(source_labels)}</p>
-            </section>
-            <section>
-              <h2>Last Updated</h2>
+              <h2>Updated</h2>
               <p>{escape(public_data["generated_at"] or "Unknown")}</p>
             </section>
           </div>
@@ -214,8 +239,13 @@ def render_page(public_data: dict[str, Any]) -> str:
 
         <section class="status-columns">
           <article class="status-card">
+            <h2>Recently Fixed</h2>
+            {render_list(public_data["recently_fixed"], "No recent fixes have been published yet.")}
+          </article>
+
+          <article class="status-card">
             <h2>Known Issues</h2>
-            {render_list(public_data["known_issues"], "No major public issues are listed right now.")}
+            {render_list(public_data["known_issues"], "No major player-facing issues are listed right now.")}
           </article>
 
           <article class="status-card">
@@ -227,18 +257,12 @@ def render_page(public_data: dict[str, Any]) -> str:
             <h2>Planned / Requested</h2>
             {render_list(public_data["planned_requested"], "No requested items are listed right now.")}
           </article>
-
-          <article class="status-card">
-            <h2>Recently Fixed</h2>
-            {render_list(public_data["recently_fixed"], "No recent fixes have been published yet.")}
-          </article>
         </section>
 
         <section class="seo-copy status-footnote">
           <h2>How To Help</h2>
           <p>
-            Found a bug or have an idea? Join the Discord and use <strong>#report-bugs</strong> or
-            <strong>#suggestions</strong>. Clear feedback helps us improve the server faster.
+            Found a bug or have an idea? Join Discord and post it in bug reports or suggestions.
           </p>
         </section>
       </main>
@@ -252,7 +276,6 @@ def main() -> int:
     report_path = latest_report_path()
     report = load_json(report_path)
     public_data = map_public_sections(report)
-    public_data["source_report"] = str(report_path)
 
     STATUS_DIR.mkdir(parents=True, exist_ok=True)
     (STATUS_DIR / "index.html").write_text(render_page(public_data), encoding="utf-8")

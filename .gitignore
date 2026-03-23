@@ -8,5 +8,6 @@ __pycache__/
 node_modules
 tmp/
 cache/
+reports/
 .server-status-core.json
 site/status.json

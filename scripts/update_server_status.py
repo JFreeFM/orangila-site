@@ -13,11 +13,11 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 
-ROOT = Path("/home/jeffreyklein/orangila-site")
+ROOT = Path(__file__).resolve().parents[1]
 SITE_DIR = ROOT / "site"
 STATUS_JSON = SITE_DIR / "status.json"
 DEPLOY_SCRIPT = ROOT / "scripts" / "deploy_transip.sh"
-DAYZ_ENV = Path("/home/jeffreyklein/dayzserver/.env.dayz-restart")
+DEFAULT_DAYZ_ENV = ROOT.parent / "dayzserver" / ".env.dayz-restart"
 STATE_CACHE = ROOT / ".server-status-core.json"
 LOCAL_TZ = ZoneInfo("Europe/Amsterdam")
 RESTART_HOURS = (0, 5, 10, 15, 20)
@@ -50,6 +50,13 @@ class StatusPayload:
         }
 
 
+def dayz_env_path() -> Path:
+    override = os.environ.get("DAYZ_RESTART_ENV_FILE", "").strip()
+    if override:
+        return Path(override)
+    return DEFAULT_DAYZ_ENV
+
+
 def log(message: str) -> None:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     print(f"[website-status] {now} {message}", flush=True)
@@ -57,9 +64,10 @@ def log(message: str) -> None:
 
 def load_dayz_env() -> dict[str, str]:
     env: dict[str, str] = {}
-    if not DAYZ_ENV.is_file():
+    env_path = dayz_env_path()
+    if not env_path.is_file():
         return env
-    for raw_line in DAYZ_ENV.read_text(encoding="utf-8").splitlines():
+    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
         line = raw_line.strip()
         if not line or line.startswith("#") or "=" not in line:
             continue
@@ -94,9 +102,10 @@ def next_restart(now_local: datetime) -> datetime:
 def build_payload() -> StatusPayload:
     env = load_dayz_env()
     service_name = env.get("DAYZ_SERVICE_NAME", "dayz.service")
-    maintenance_lock = Path(env.get("SCHEDULED_RESTART_LOCK_PATH", "/home/jeffreyklein/dayzserver/.restart-lock"))
+    default_dayz_root = dayz_env_path().parent
+    maintenance_lock = Path(env.get("SCHEDULED_RESTART_LOCK_PATH", str(default_dayz_root / ".restart-lock")))
     runtime_lock = Path(
-        env.get("SCHEDULED_RESTART_RUNTIME_LOCK_PATH", "/home/jeffreyklein/dayzserver/.scheduled-restart-running.lock")
+        env.get("SCHEDULED_RESTART_RUNTIME_LOCK_PATH", str(default_dayz_root / ".scheduled-restart-running.lock"))
     )
     now_utc = datetime.now(timezone.utc)
     now_local = now_utc.astimezone(LOCAL_TZ)

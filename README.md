@@ -1,25 +1,35 @@
 # OranGila Site
 
-Static website project for `orangila.com`, managed on this server.
+Static website project for `orangila.com`.
+
+## Structure
+
+- `site/` contains the published website files.
+- `scripts/` contains local build, deploy, and status update helpers.
 
 ## Deploy
 
-The live target is TransIP. Deploy from the project root with:
+Deploy from the project root with:
 
 ```bash
 ./scripts/deploy_transip.sh
 ```
 
-## Notes
+Environment-specific deploy settings belong in `.env.deploy` and are not tracked.
 
-- `site/` contains the published website files.
-- `scripts/deploy_transip.sh` handles deployment to TransIP.
-- Environment-specific deploy settings belong in `.env.deploy` and are not tracked.
+## Public Repo Rules
 
-## Git Remote
+This repository is meant to stay public.
 
-If you want to connect this repository to a remote later, add one manually:
+Keep public:
+- website source in `site/`
+- generic deploy/build helpers
+- public status page output
 
-```bash
-git remote add origin <your-remote-url>
-```
+Keep private:
+- `.env.deploy`
+- tokens, passwords, webhook URLs, and private SSH material
+- internal ops snapshots or host-specific run notes
+- environment-specific paths unless they are required for local runtime only
+
+If local infrastructure details are needed, prefer env vars or non-tracked local config.

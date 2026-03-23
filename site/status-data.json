@@ -1,34 +1,27 @@
 {
   "reporting_period": "2026-03-22 to 2026-03-23",
   "generated_at": "2026-03-23 11:54 UTC",
-  "messages_processed": 6,
-  "source_channels": [
-    "suggestions",
-    "report-bugs",
-    "bug-reports"
-  ],
   "known_issues": [
-    "Zombie hit registration delays/freezing near Novy Sobor and Staroye (high)",
-    "Trader UI closes unexpectedly during rapid scrolling (medium)",
-    "Zombie synchronization failures in high-traffic areas (gameplay)",
-    "New player onboarding confusion (onboarding)"
+    "Zombie hit registration delays/freezing near Novy Sobor and Staroye",
+    "Trader UI closes unexpectedly during rapid scrolling",
+    "Zombie synchronization failures in high-traffic areas",
+    "New player onboarding confusion"
   ],
   "in_progress": [
-    "Create pinned Discord starter guide with trader locations and rules",
-    "Adjust basic repair item prices in trader configuration",
-    "Investigate server performance and zombie AI synchronization near Novy Sobor and Staroye during peak population",
-    "Fix trader UI scroll event handling to prevent transaction interruption"
+    "Improve the starter guide so new players can get in faster.",
+    "Tune trader pricing for basic repair items.",
+    "Improve zombie performance and stability around busy areas like Novy Sobor and Staroye.",
+    "Improve trader menu stability during fast scrolling."
   ],
   "planned_requested": [
-    "Reduce trader prices for basic repair items (medium)",
-    "Starter guide panel for new players (Discord and in-game) (high)"
+    "Reduce trader prices for basic repair items",
+    "Starter guide panel for new players (Discord and in-game)"
   ],
   "recently_fixed": [
-    "Discord restart countdown live - Restart notices are already posted to Discord at 15, 5, and 1 minute before scheduled restart. (2026-03-21)",
-    "Krona trader survivor issue removed - The broken Krona trader map layer was disabled so the survivor and helipad error no longer respawn. (2026-03-17)",
-    "Krona trader fallback switched to signs and marker boards - Krona trading now uses stable signs, map markers, and TraderPlus instead of unstable NPC placement. (2026-03-17)",
-    "RCON chat delivery restored - The Discord and admin chat path was fixed by switching the primary RCON delivery path to the stable backend. (2026-03-02)"
+    "Discord restart warnings now post before scheduled restarts (2026-03-21)",
+    "The broken Krona trader survivor issue was removed (2026-03-17)",
+    "Krona trading now uses stable signs and marker boards (2026-03-17)",
+    "Discord and admin chat delivery was restored (2026-03-02)"
   ],
-  "notes": [],
-  "source_report": "/home/jeffreyklein/dayzserver/reports/community-insights-2026-03-23.json"
+  "notes": []
 }
