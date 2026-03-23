@@ -9,3 +9,4 @@ node_modules
 tmp/
 cache/
 .server-status-core.json
+site/status.json
