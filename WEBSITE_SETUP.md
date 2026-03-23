@@ -46,6 +46,8 @@ The current first version includes:
 - public `/status/` page generated from the Community Insights pipeline
 - copy-to-copy server address block for `85.145.216.36:2302`
 - compact `Why OranGila?` value section
+- `Ready To Join?` support copy:
+  - `Start via Discord, check the server details, and review the live status before jumping in.`
 
 Current status states:
 - `Online` (green)
