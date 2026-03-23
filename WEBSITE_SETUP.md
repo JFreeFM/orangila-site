@@ -36,7 +36,7 @@ The current first version includes:
 - centered overlay content
 - `ORANGILA DAYZ` brand mark positioned top-left outside the hero image
 - CTA button text:
-  - `Join Our DayZ Server`
+  - `Join via Discord`
 - CTA button target:
   - `https://discord.gg/SZdwUpmTXp`
 - red/white visual direction
@@ -44,6 +44,8 @@ The current first version includes:
 - live server status badge on the homepage
 - basic SEO metadata for search and social previews
 - public `/status/` page generated from the Community Insights pipeline
+- copy-to-copy server address block for `85.145.216.36:2302`
+- compact `Why OranGila?` value section
 
 Current status states:
 - `Online` (green)
@@ -82,7 +84,13 @@ cd /path/to/orangila-site
 - The old hosting placeholder page was replaced by the static site.
 - Future changes can be made locally in `site/` and then published with the deploy script.
 - The deploy script now validates the SSH key path and refuses unsafe empty or root target paths.
+- The homepage keeps the existing visual style, but the copy is now more player-facing:
+  - stronger Discord-first CTA
+  - direct support text
+  - compact value section
+  - copy-to-copy connect block
 - Website server status is generated locally from the DayZ runtime state and published through `site/status.json`.
+- The global page background now explicitly uses the existing dark theme color on both `html` and `body`, so overscroll/empty scroll space no longer shows white.
 - Basic SEO files now ship with the site:
   - `site/robots.txt`
   - `site/sitemap.xml`

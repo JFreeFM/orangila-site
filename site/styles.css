@@ -13,6 +13,12 @@
   box-sizing: border-box;
 }
 
+html,
+body {
+  min-height: 100%;
+  background-color: var(--bg);
+}
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -204,6 +210,63 @@ h1 {
   font-size: 1rem;
 }
 
+.copy-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.copy-value {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 1rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.copy-value:hover {
+  color: #ffd3d3;
+}
+
+.copy-hint {
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #ffc7c7;
+}
+
+.why-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.why-card {
+  padding: 18px 20px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.why-card h2 {
+  margin: 0 0 8px;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #ffc7c7;
+}
+
+.why-card p {
+  margin: 0;
+  color: rgba(243, 244, 234, 0.88);
+  line-height: 1.6;
+}
+
 .status-panel {
   margin-top: 18px;
   padding: 20px 22px;
@@ -270,6 +333,12 @@ h1 {
   margin: 14px 0 0;
   color: rgba(243, 244, 234, 0.88);
   line-height: 1.6;
+}
+
+.status-note {
+  margin: 10px 0 0;
+  color: #ffc7c7;
+  font-size: 0.88rem;
 }
 
 .seo-copy {
@@ -391,6 +460,10 @@ h1 {
 
 @media (max-width: 640px) {
   .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .why-grid {
     grid-template-columns: 1fr;
   }
 

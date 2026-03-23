@@ -58,10 +58,10 @@
           <div class="hero-overlay">
             <h1>Summer Chernarus PvE</h1>
             <p class="intro">
-              OranGila DayZ is a Summer Chernarus PvE server with live status, Discord access, and fast join info in one place.
+              Survive, explore, and build on Summer Chernarus with live server status, fast join info, and an active Discord community.
             </p>
             <div class="cta-row">
-              <a class="primary-button" href="https://discord.gg/SZdwUpmTXp" target="_blank" rel="noreferrer">Join Our DayZ Server</a>
+              <a class="primary-button" href="https://discord.gg/SZdwUpmTXp" target="_blank" rel="noreferrer">Join via Discord</a>
               <a class="secondary-button" href="./status/">Status & Roadmap</a>
             </div>
           </div>
@@ -78,13 +78,37 @@
           </section>
           <section>
             <h2>Connect</h2>
-            <p>85.145.216.36:2302</p>
+            <div class="copy-block">
+              <button class="copy-value" id="server-connect-copy" type="button" data-copy="85.145.216.36:2302">
+                85.145.216.36:2302
+              </button>
+              <span class="copy-hint" id="server-connect-copy-hint">Click to copy</span>
+            </div>
           </section>
           <section>
             <h2>Launcher</h2>
             <p>DZSA or official DayZ launcher</p>
           </section>
         </div>
+
+        <section class="why-grid" aria-label="Why OranGila">
+          <article class="why-card">
+            <h2>Why OranGila?</h2>
+            <p>Stable server performance and clear public status.</p>
+          </article>
+          <article class="why-card">
+            <h2>Support</h2>
+            <p>Active admin support and fast Discord updates.</p>
+          </article>
+          <article class="why-card">
+            <h2>Playstyle</h2>
+            <p>PvE-focused gameplay built for building, exploring, and surviving.</p>
+          </article>
+          <article class="why-card">
+            <h2>Transparency</h2>
+            <p>Live status and community-driven improvements in one place.</p>
+          </article>
+        </section>
 
         <section class="status-panel" aria-live="polite">
           <div class="status-head">
@@ -97,13 +121,13 @@
           <p class="status-text" id="server-status-detail">
             Server is live. Next scheduled restart: 00:00 CET.
           </p>
+          <p class="status-note">Live status and transparent server updates.</p>
         </section>
 
         <section class="seo-copy">
-          <h2>Join OranGila DayZ</h2>
+          <h2>Ready To Join?</h2>
           <p>
-            Play on the OranGila DayZ Summer Chernarus PvE server, check the live server status,
-            join through Discord, and stay up to date with restart timing and community info.
+            Join through Discord, copy the server address, and check the live status page before you log in.
           </p>
         </section>
       </main>
@@ -112,6 +136,8 @@
       const badge = document.getElementById("server-status-badge");
       const label = document.getElementById("server-status-label");
       const detail = document.getElementById("server-status-detail");
+      const copyButton = document.getElementById("server-connect-copy");
+      const copyHint = document.getElementById("server-connect-copy-hint");
 
       const statusClasses = {
         online: "status-online",
@@ -139,6 +165,24 @@
           label.textContent = "Status Unavailable";
           detail.textContent = "Live server status could not be loaded right now.";
         });
+
+      if (copyButton && copyHint && navigator.clipboard) {
+        copyButton.addEventListener("click", async () => {
+          const value = copyButton.dataset.copy || copyButton.textContent || "";
+          try {
+            await navigator.clipboard.writeText(value.trim());
+            copyHint.textContent = "Copied";
+            window.setTimeout(() => {
+              copyHint.textContent = "Click to copy";
+            }, 1600);
+          } catch (error) {
+            copyHint.textContent = "Copy failed";
+            window.setTimeout(() => {
+              copyHint.textContent = "Click to copy";
+            }, 1600);
+          }
+        });
+      }
     </script>
   </body>
 </html>

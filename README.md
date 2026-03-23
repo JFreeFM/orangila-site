@@ -25,6 +25,7 @@ Keep public:
 - website source in `site/`
 - generic deploy/build helpers
 - public status page output
+- concise public-facing docs about the current live homepage and status flow
 
 Keep private:
 - `.env.deploy`
