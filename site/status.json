@@ -1,0 +1,7 @@
+{
+  "state": "online",
+  "label": "Online",
+  "detail": "Server is live. Next scheduled restart: 15:00 CET.",
+  "next_restart": "15:00 CET",
+  "checked_at": "2026-03-23T10:34:54.935384+00:00"
+}

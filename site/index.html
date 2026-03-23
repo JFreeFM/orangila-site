@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OranGila DayZ | Summer Chernarus PvE Server</title>
+    <meta
+      name="description"
+      content="OranGila DayZ is a Summer Chernarus PvE server. Find server status, join info, Discord access, and community updates at orangila.com."
+    >
+    <link rel="canonical" href="https://orangila.com/">
+    <meta name="robots" content="index,follow">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="OranGila DayZ">
+    <meta property="og:title" content="OranGila DayZ | Summer Chernarus PvE Server">
+    <meta
+      property="og:description"
+      content="Join the OranGila DayZ Summer Chernarus PvE server. Check live server status, Discord, and how to join."
+    >
+    <meta property="og:url" content="https://orangila.com/">
+    <meta property="og:image" content="https://orangila.com/OranGilanewserver.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="OranGila DayZ | Summer Chernarus PvE Server">
+    <meta
+      name="twitter:description"
+      content="Live server status, join info, and Discord for the OranGila DayZ Summer Chernarus PvE server."
+    >
+    <meta name="twitter:image" content="https://orangila.com/OranGilanewserver.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Syne:wght@700;800&display=swap"
+      rel="stylesheet"
+    >
+    <link rel="stylesheet" href="./styles.css">
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "OranGila DayZ",
+        "url": "https://orangila.com/",
+        "description": "OranGila DayZ Summer Chernarus PvE server website with live server status, join info, and Discord access."
+      }
+    </script>
+  </head>
+  <body>
+    <div class="page-shell">
+      <a class="site-mark" href="/">ORANGILA DAYZ</a>
+      <div class="glow glow-a"></div>
+      <div class="glow glow-b"></div>
+      <main class="hero-stage">
+        <div class="hero-image-wrap">
+          <img
+            class="hero-image"
+            src="./OranGilanewserver.png"
+            alt="OranGila DayZ server visual"
+          >
+          <div class="hero-overlay">
+            <h1>Summer Chernarus PvE</h1>
+            <p class="intro">
+              OranGila DayZ is a Summer Chernarus PvE server with live status, Discord access, and fast join info in one place.
+            </p>
+            <div class="cta-row">
+              <a class="primary-button" href="https://discord.gg/SZdwUpmTXp" target="_blank" rel="noreferrer">Join Our DayZ Server</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-grid" id="join">
+          <section>
+            <h2>Server</h2>
+            <p>OranGila PvE</p>
+          </section>
+          <section>
+            <h2>Map</h2>
+            <p>Summer Chernarus</p>
+          </section>
+          <section>
+            <h2>Connect</h2>
+            <p>85.145.216.36:2302</p>
+          </section>
+          <section>
+            <h2>Launcher</h2>
+            <p>DZSA or official DayZ launcher</p>
+          </section>
+        </div>
+
+        <section class="status-panel" aria-live="polite">
+          <div class="status-head">
+            <h2>Server Status</h2>
+            <div class="status-badge status-online" id="server-status-badge">
+              <span class="status-dot"></span>
+              <span id="server-status-label">Online</span>
+            </div>
+          </div>
+          <p class="status-text" id="server-status-detail">
+            Server is live. Next scheduled restart: 00:00 CET.
+          </p>
+        </section>
+
+        <section class="seo-copy">
+          <h2>Join OranGila DayZ</h2>
+          <p>
+            Play on the OranGila DayZ Summer Chernarus PvE server, check the live server status,
+            join through Discord, and stay up to date with restart timing and community info.
+          </p>
+        </section>
+      </main>
+    </div>
+    <script>
+      const badge = document.getElementById("server-status-badge");
+      const label = document.getElementById("server-status-label");
+      const detail = document.getElementById("server-status-detail");
+
+      const statusClasses = {
+        online: "status-online",
+        "restart-soon": "status-restart-soon",
+        "scheduled-restart": "status-restart-soon",
+        maintenance: "status-maintenance",
+        offline: "status-offline"
+      };
+
+      fetch("./status.json", { cache: "no-store" })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("status fetch failed");
+          }
+          return response.json();
+        })
+        .then((data) => {
+          const nextClass = statusClasses[data.state] || "status-offline";
+          badge.className = `status-badge ${nextClass}`;
+          label.textContent = data.label || "Unknown";
+          detail.textContent = data.detail || "Status unavailable right now.";
+        })
+        .catch(() => {
+          badge.className = "status-badge status-offline";
+          label.textContent = "Status Unavailable";
+          detail.textContent = "Live server status could not be loaded right now.";
+        });
+    </script>
+  </body>
+</html>
