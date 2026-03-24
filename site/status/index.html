@@ -35,8 +35,43 @@
             </section>
             <section>
               <h2>Updated</h2>
-              <p>2026-03-23 11:54 UTC</p>
+              <p id="status-updated-summary">2026-03-23 11:54 UTC</p>
             </section>
+          </div>
+        </section>
+
+        <section class="status-card status-time-card">
+          <div class="status-time-head">
+            <div>
+              <h2>Time Reference</h2>
+              <p class="status-time-note">
+                Backend timestamps stay in UTC. The website renders explicit UTC and Europe/Amsterdam local values with CET or CEST labels from server-side status data.
+              </p>
+            </div>
+            <div class="status-time-live">
+              <p class="status-time-live-label">Current Server Time (live since last sync)</p>
+              <p class="status-time-live-value" id="current-server-time-live">Loading...</p>
+            </div>
+          </div>
+          <div class="status-time-table-wrap">
+            <table class="status-time-table">
+              <thead>
+                <tr>
+                  <th scope="col">Reference</th>
+                  <th scope="col">UTC Time</th>
+                  <th scope="col">Local Time (CET/CEST)</th>
+                  <th scope="col">Current Server Time</th>
+                </tr>
+              </thead>
+              <tbody id="status-time-table-body">
+                <tr>
+                  <td>Status Page Updated</td>
+                  <td>Loading...</td>
+                  <td>Loading...</td>
+                  <td>Loading...</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </section>
 
@@ -44,10 +79,10 @@
           <article class="status-card">
             <h2>Recently Fixed</h2>
             <ul class="status-list">
-  <li>Discord restart warnings now post before scheduled restarts (2026-03-21)</li>
+  <li>Improved economy balance (2026-03-23)</li>
+  <li><a href="https://discord.gg/SZdwUpmTXp" target="_blank" rel="noopener">Discord</a> restart warnings now post before scheduled restarts (2026-03-21)</li>
   <li>The broken Krona trader survivor issue was removed (2026-03-17)</li>
   <li>Krona trading now uses stable signs and marker boards (2026-03-17)</li>
-  <li>Discord and admin chat delivery was restored (2026-03-02)</li>
 </ul>
           </article>
 
@@ -75,7 +110,7 @@
             <h2>Planned / Requested</h2>
             <ul class="status-list">
   <li>Reduce trader prices for basic repair items</li>
-  <li>Starter guide panel for new players (Discord and in-game)</li>
+  <li>Starter guide panel for new players (<a href="https://discord.gg/SZdwUpmTXp" target="_blank" rel="noopener">Discord</a> and in-game)</li>
 </ul>
           </article>
         </section>
@@ -83,10 +118,157 @@
         <section class="seo-copy status-footnote">
           <h2>How To Help</h2>
           <p>
-            Found a bug or have an idea? Join Discord and post it in bug reports or suggestions.
+            Found a bug or have an idea? Join <a href="https://discord.gg/SZdwUpmTXp" target="_blank" rel="noopener">Discord</a> and post it in bug reports or suggestions.
           </p>
         </section>
       </main>
     </div>
+    <script>
+      function parseServerLocalTime(value) {
+        if (!value) {
+          return null;
+        }
+
+        const match = String(value).trim().match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}) (CET|CEST)$/);
+        if (!match) {
+          return null;
+        }
+
+        const [, year, month, day, hour, minute, zone] = match;
+        const offsetHours = zone === "CEST" ? 2 : 1;
+        const utcMillis = Date.UTC(
+          Number(year),
+          Number(month) - 1,
+          Number(day),
+          Number(hour) - offsetHours,
+          Number(minute),
+          0,
+        );
+        return new Date(utcMillis);
+      }
+
+      function formatLiveServerTime(date) {
+        const zonePart = new Intl.DateTimeFormat("en-GB", {
+          timeZone: "Europe/Amsterdam",
+          timeZoneName: "shortOffset",
+        })
+          .formatToParts(date)
+          .find((part) => part.type === "timeZoneName");
+
+        const rawZone = zonePart ? zonePart.value : "";
+        const zone = rawZone === "GMT+2" ? "CEST" : rawZone === "GMT+1" ? "CET" : "UNKNOWN";
+        const parts = new Intl.DateTimeFormat("en-GB", {
+          timeZone: "Europe/Amsterdam",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false,
+        }).formatToParts(date);
+        const map = Object.fromEntries(parts.filter((part) => part.type !== "literal").map((part) => [part.type, part.value]));
+        return `${map.year}-${map.month}-${map.day} ${map.hour}:${map.minute}:${map.second} ${zone}`;
+      }
+
+      function startLiveServerClock(initialValue) {
+        const live = document.getElementById("current-server-time-live");
+        if (!live) {
+          return;
+        }
+
+        const startDate = parseServerLocalTime(initialValue);
+        if (!startDate) {
+          live.textContent = initialValue || "UNKNOWN";
+          return;
+        }
+
+        const clientStart = Date.now();
+
+        function tick() {
+          const elapsedMs = Date.now() - clientStart;
+          const currentDate = new Date(startDate.getTime() + elapsedMs);
+          const text = formatLiveServerTime(currentDate);
+          live.textContent = text;
+          document.querySelectorAll(".current-server-time-cell").forEach((cell) => {
+            cell.textContent = text;
+          });
+        }
+
+        tick();
+        window.setInterval(tick, 1000);
+      }
+
+      function renderTimeRows(rows) {
+        const body = document.getElementById("status-time-table-body");
+        if (!body) {
+          return;
+        }
+
+        body.innerHTML = rows
+          .map((row) => {
+            return `
+              <tr>
+                <th scope="row">${row.label}</th>
+                <td>${row.utc || "UNKNOWN"}</td>
+                <td>${row.local || "UNKNOWN"}</td>
+                <td class="current-server-time-cell">${row.current || "UNKNOWN"}</td>
+              </tr>
+            `;
+          })
+          .join("");
+      }
+
+      async function loadStatusTimeData() {
+        try {
+          const [statusDataResponse, statusResponse] = await Promise.all([
+            fetch("../status-data.json", { cache: "no-store" }),
+            fetch("../status.json", { cache: "no-store" }),
+          ]);
+
+          const statusData = await statusDataResponse.json();
+          const status = await statusResponse.json();
+          const currentServerTime = status.server_time_local || "UNKNOWN";
+          const rows = [
+            {
+              label: "Status Page Updated",
+              utc: statusData.generated_at || "UNKNOWN",
+              local: statusData.generated_at_local || "UNKNOWN",
+              current: currentServerTime,
+            },
+            {
+              label: "Server Checked At",
+              utc: status.checked_at_utc || "UNKNOWN",
+              local: status.server_time_local || "UNKNOWN",
+              current: currentServerTime,
+            },
+          ];
+
+          renderTimeRows(rows);
+
+          const summary = document.getElementById("status-updated-summary");
+          if (summary) {
+            summary.textContent = `${rows[0].utc} | ${rows[0].local}`;
+          }
+
+          startLiveServerClock(currentServerTime);
+        } catch (error) {
+          const body = document.getElementById("status-time-table-body");
+          if (body) {
+            body.innerHTML = `
+              <tr>
+                <th scope="row">Time Data</th>
+                <td>UNKNOWN</td>
+                <td>UNKNOWN</td>
+                <td class="current-server-time-cell">UNKNOWN</td>
+              </tr>
+            `;
+          }
+          startLiveServerClock("UNKNOWN");
+        }
+      }
+
+      loadStatusTimeData();
+    </script>
   </body>
 </html>
