@@ -11,3 +11,4 @@ cache/
 reports/
 .server-status-core.json
 site/status.json
+site/status-data.json
