@@ -92,6 +92,16 @@ cd /path/to/orangila-site
   - compact value section
   - copy-to-copy connect block
 - Website server status is generated locally from the DayZ runtime state and published through `site/status.json`.
+- `site/status.json` is the server-side source of truth for public server timing fields:
+  - `checked_at_utc`
+  - `server_time_utc`
+  - `server_time_local`
+  - `next_restart_utc`
+  - `next_restart_local`
+  - `status`
+  - `label`
+  - `detail`
+  - `timezone`
 - The global page background now explicitly uses the existing dark theme color on both `html` and `body`, so overscroll/empty scroll space no longer shows white.
 - Basic SEO files now ship with the site:
   - `site/robots.txt`
@@ -107,6 +117,14 @@ cd /path/to/orangila-site
   - `https://orangila.com/status.json`
 - Public roadmap/status page:
   - `https://orangila.com/status/`
+- Status page time display:
+  - source timestamps remain UTC in server-side status generation
+  - the website renders precomputed fields from `site/status.json`
+  - Europe/Amsterdam local values remain explicitly labeled `CET` or `CEST`
+- Status page time example:
+  - `Status Page Updated | 2026-03-23 11:54 UTC | 2026-03-23 12:54 CET | 2026-03-24 11:02 CET`
+- Deploy note:
+  - no deploy was executed as part of this code change
 - Browser note:
   - after a restart or status flip, browsers may briefly show a cached older state until a hard refresh or cache-bypassed request is used
 - A later improvement is to point the homepage CTA to a branded Discord landing route such as `orangila.com/discord`.

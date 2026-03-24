@@ -26,27 +26,36 @@ RESTART_SOON_MINUTES = 15
 
 @dataclass
 class StatusPayload:
-    state: str
+    status: str
     label: str
     detail: str
-    next_restart: str
-    checked_at: str
+    timezone: str
+    checked_at_utc: str
+    server_time_utc: str
+    server_time_local: str
+    next_restart_utc: str
+    next_restart_local: str
 
     def to_json(self) -> dict[str, Any]:
         return {
-            "state": self.state,
+            "state": self.status,
+            "status": self.status,
             "label": self.label,
             "detail": self.detail,
-            "next_restart": self.next_restart,
-            "checked_at": self.checked_at,
+            "timezone": self.timezone,
+            "checked_at_utc": self.checked_at_utc,
+            "server_time_utc": self.server_time_utc,
+            "server_time_local": self.server_time_local,
+            "next_restart_utc": self.next_restart_utc,
+            "next_restart_local": self.next_restart_local,
         }
 
     def core_json(self) -> dict[str, Any]:
         return {
-            "state": self.state,
+            "state": self.status,
             "label": self.label,
             "detail": self.detail,
-            "next_restart": self.next_restart,
+            "next_restart_local": self.next_restart_local,
         }
 
 
@@ -99,6 +108,31 @@ def next_restart(now_local: datetime) -> datetime:
     return datetime(tomorrow.year, tomorrow.month, tomorrow.day, RESTART_HOURS[0], 0, tzinfo=LOCAL_TZ)
 
 
+def format_utc_label(value: datetime) -> str:
+    return value.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+
+
+def format_local_label(value: datetime) -> str:
+    return value.astimezone(LOCAL_TZ).strftime("%Y-%m-%d %H:%M %Z")
+
+
+def base_payload_fields(now_utc: datetime, next_restart_local: datetime) -> dict[str, str]:
+    next_restart_utc = next_restart_local.astimezone(timezone.utc)
+    checked_at_utc = format_utc_label(now_utc)
+    server_time_utc = format_utc_label(now_utc)
+    server_time_local = format_local_label(now_utc)
+    next_restart_utc_label = format_utc_label(next_restart_utc)
+    next_restart_local_label = format_local_label(next_restart_local)
+    return {
+        "timezone": "UTC source; Europe/Amsterdam local time (CET/CEST)",
+        "checked_at_utc": checked_at_utc,
+        "server_time_utc": server_time_utc,
+        "server_time_local": server_time_local,
+        "next_restart_utc": next_restart_utc_label,
+        "next_restart_local": next_restart_local_label,
+    }
+
+
 def build_payload() -> StatusPayload:
     env = load_dayz_env()
     service_name = env.get("DAYZ_SERVICE_NAME", "dayz.service")
@@ -110,51 +144,46 @@ def build_payload() -> StatusPayload:
     now_utc = datetime.now(timezone.utc)
     now_local = now_utc.astimezone(LOCAL_TZ)
     next_restart_local = next_restart(now_local)
-    next_restart_label = next_restart_local.strftime("%H:%M %Z")
+    shared = base_payload_fields(now_utc, next_restart_local)
     minutes_until_restart = max(0, math.ceil((next_restart_local - now_local).total_seconds() / 60.0))
 
     if not is_dayz_active(service_name):
         return StatusPayload(
-            state="offline",
+            status="offline",
             label="Offline",
             detail="The DayZ server is currently offline.",
-            next_restart=next_restart_label,
-            checked_at=now_utc.isoformat(),
+            **shared,
         )
 
     if maintenance_lock.exists():
         return StatusPayload(
-            state="maintenance",
+            status="maintenance",
             label="Maintenance",
             detail="Server maintenance is active right now.",
-            next_restart=next_restart_label,
-            checked_at=now_utc.isoformat(),
+            **shared,
         )
 
     if runtime_lock.exists():
         return StatusPayload(
-            state="scheduled-restart",
+            status="scheduled-restart",
             label="Scheduled Restart",
             detail="Scheduled restart countdown is active. The server is still online until the restart completes.",
-            next_restart=next_restart_label,
-            checked_at=now_utc.isoformat(),
+            **shared,
         )
 
     if minutes_until_restart <= RESTART_SOON_MINUTES:
         return StatusPayload(
-            state="restart-soon",
+            status="restart-soon",
             label="Restart Soon",
             detail=f"Scheduled restart in about {minutes_until_restart} minute(s).",
-            next_restart=next_restart_label,
-            checked_at=now_utc.isoformat(),
+            **shared,
         )
 
     return StatusPayload(
-        state="online",
+        status="online",
         label="Online",
-        detail=f"Server is live. Next scheduled restart: {next_restart_label}.",
-        next_restart=next_restart_label,
-        checked_at=now_utc.isoformat(),
+        detail="Server is live.",
+        **shared,
     )
 
 
@@ -182,7 +211,7 @@ def deploy() -> None:
 def main() -> int:
     payload = build_payload()
     changed = write_status(payload)
-    log(f"rendered state={payload.state} label={payload.label} next_restart={payload.next_restart}")
+    log(f"rendered state={payload.status} label={payload.label} next_restart={payload.next_restart_local}")
     if changed:
         log("status changed; deploying website update")
         deploy()

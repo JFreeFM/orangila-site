@@ -58,7 +58,7 @@
           <div class="hero-overlay">
             <h1>Summer Chernarus PvE</h1>
             <p class="intro">
-              Survive, explore, and build on Summer Chernarus with live server status, fast join info, and an active Discord community.
+              Survive, explore, and build on Summer Chernarus with live server status, fast join info, and an active <a href="https://discord.gg/SZdwUpmTXp" target="_blank" rel="noopener">Discord</a> community.
             </p>
             <div class="cta-row">
               <a class="primary-button" href="https://discord.gg/SZdwUpmTXp" target="_blank" rel="noreferrer">Join via Discord</a>
@@ -98,7 +98,7 @@
           </article>
           <article class="why-card">
             <h2>Support</h2>
-            <p>Active admin support and fast Discord updates.</p>
+            <p>Active admin support and fast <a href="https://discord.gg/SZdwUpmTXp" target="_blank" rel="noopener">Discord</a> updates.</p>
           </article>
           <article class="why-card">
             <h2>Playstyle</h2>
@@ -119,15 +119,26 @@
             </div>
           </div>
           <p class="status-text" id="server-status-detail">
-            Server is live. Next scheduled restart: 00:00 CET.
+            Server is live.
           </p>
+          <div class="status-restart-times" id="server-restart-times">
+            <p class="status-restart-title">Next scheduled restart</p>
+            <p class="status-restart-line">
+              <span class="status-restart-label">UTC</span>
+              <span id="server-restart-utc">Loading...</span>
+            </p>
+            <p class="status-restart-line">
+              <span class="status-restart-label">Local (CET/CEST)</span>
+              <span id="server-restart-local">Loading...</span>
+            </p>
+          </div>
           <p class="status-note">Live status and transparent server updates.</p>
         </section>
 
         <section class="seo-copy">
           <h2>Ready To Join?</h2>
           <p>
-            Start via Discord, check the server details, and review the live status before jumping in.
+            Start via <a href="https://discord.gg/SZdwUpmTXp" target="_blank" rel="noopener">Discord</a>, check the server details, and review the live status before jumping in.
           </p>
         </section>
       </main>
@@ -136,9 +147,10 @@
       const badge = document.getElementById("server-status-badge");
       const label = document.getElementById("server-status-label");
       const detail = document.getElementById("server-status-detail");
+      const restartUtc = document.getElementById("server-restart-utc");
+      const restartLocal = document.getElementById("server-restart-local");
       const copyButton = document.getElementById("server-connect-copy");
       const copyHint = document.getElementById("server-connect-copy-hint");
-
       const statusClasses = {
         online: "status-online",
         "restart-soon": "status-restart-soon",
@@ -155,15 +167,20 @@
           return response.json();
         })
         .then((data) => {
-          const nextClass = statusClasses[data.state] || "status-offline";
+          const currentStatus = data.status || data.state;
+          const nextClass = statusClasses[currentStatus] || "status-offline";
           badge.className = `status-badge ${nextClass}`;
           label.textContent = data.label || "Unknown";
           detail.textContent = data.detail || "Status unavailable right now.";
+          restartUtc.textContent = data.next_restart_utc || "UNKNOWN";
+          restartLocal.textContent = data.next_restart_local || "UNKNOWN";
         })
         .catch(() => {
           badge.className = "status-badge status-offline";
           label.textContent = "Status Unavailable";
           detail.textContent = "Live server status could not be loaded right now.";
+          restartUtc.textContent = "UNKNOWN";
+          restartLocal.textContent = "UNKNOWN";
         });
 
       if (copyButton && copyHint && navigator.clipboard) {

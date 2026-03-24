@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from html import escape
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,6 +18,7 @@ SITE_DIR = ROOT / "site"
 STATUS_DIR = SITE_DIR / "status"
 PUBLIC_DATA_PATH = SITE_DIR / "status-data.json"
 RECENT_FIXES_PATH = REPORTS_DIR / "recent-fixes.json"
+LOCAL_TZ = ZoneInfo("Europe/Amsterdam")
 
 
 def latest_report_path() -> Path:
@@ -163,19 +165,19 @@ def map_public_sections(report: dict[str, Any]) -> dict[str, Any]:
     reporting_period = clean_item(str(summary.get("reporting_period") or "Latest daily report"))
     generated_at_raw = clean_item(str(meta.get("generated_at") or ""))
     generated_at = generated_at_raw
+    generated_at_local = "UNKNOWN"
     if generated_at_raw:
         try:
-            generated_at = (
-                datetime.fromisoformat(generated_at_raw.replace("Z", "+00:00"))
-                .astimezone(UTC)
-                .strftime("%Y-%m-%d %H:%M UTC")
-            )
+            generated_dt = datetime.fromisoformat(generated_at_raw.replace("Z", "+00:00"))
+            generated_at = generated_dt.astimezone(UTC).strftime("%Y-%m-%d %H:%M UTC")
+            generated_at_local = generated_dt.astimezone(LOCAL_TZ).strftime("%Y-%m-%d %H:%M %Z")
         except ValueError:
             generated_at = generated_at_raw
 
     return {
         "reporting_period": reporting_period,
         "generated_at": generated_at,
+        "generated_at_local": generated_at_local,
         "known_issues": distinct(known_issues + recurring_issue_titles),
         "in_progress": in_progress,
         "planned_requested": planned_requested,
@@ -232,8 +234,43 @@ def render_page(public_data: dict[str, Any]) -> str:
             </section>
             <section>
               <h2>Updated</h2>
-              <p>{escape(public_data["generated_at"] or "Unknown")}</p>
+              <p id="status-updated-summary">{escape(public_data["generated_at"] or "Unknown")}</p>
             </section>
+          </div>
+        </section>
+
+        <section class="status-card status-time-card">
+          <div class="status-time-head">
+            <div>
+              <h2>Time Reference</h2>
+              <p class="status-time-note">
+                Backend timestamps stay in UTC. The website renders explicit UTC and Europe/Amsterdam local values with CET or CEST labels from server-side status data.
+              </p>
+            </div>
+            <div class="status-time-live">
+              <p class="status-time-live-label">Current Server Time</p>
+              <p class="status-time-live-value" id="current-server-time-live">Loading...</p>
+            </div>
+          </div>
+          <div class="status-time-table-wrap">
+            <table class="status-time-table">
+              <thead>
+                <tr>
+                  <th scope="col">Reference</th>
+                  <th scope="col">UTC Time</th>
+                  <th scope="col">Local Time (CET/CEST)</th>
+                  <th scope="col">Current Server Time</th>
+                </tr>
+              </thead>
+              <tbody id="status-time-table-body">
+                <tr>
+                  <td>Status Page Updated</td>
+                  <td>Loading...</td>
+                  <td>Loading...</td>
+                  <td>Loading...</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </section>
 
@@ -267,6 +304,84 @@ def render_page(public_data: dict[str, Any]) -> str:
         </section>
       </main>
     </div>
+    <script>
+      function renderTimeRows(rows) {{
+        const body = document.getElementById("status-time-table-body");
+        if (!body) {{
+          return;
+        }}
+
+        body.innerHTML = rows
+          .map((row) => {{
+            return `
+              <tr>
+                <th scope="row">${{row.label}}</th>
+                <td>${{row.utc || "UNKNOWN"}}</td>
+                <td>${{row.local || "UNKNOWN"}}</td>
+                <td class="current-server-time-cell">${{row.current || "UNKNOWN"}}</td>
+              </tr>
+            `;
+          }})
+          .join("");
+      }}
+
+      async function loadStatusTimeData() {{
+        try {{
+          const [statusDataResponse, statusResponse] = await Promise.all([
+            fetch("../status-data.json", {{ cache: "no-store" }}),
+            fetch("../status.json", {{ cache: "no-store" }}),
+          ]);
+
+          const statusData = await statusDataResponse.json();
+          const status = await statusResponse.json();
+          const currentServerTime = status.server_time_local || "UNKNOWN";
+          const rows = [
+            {{
+              label: "Status Page Updated",
+              utc: statusData.generated_at || "UNKNOWN",
+              local: statusData.generated_at_local || "UNKNOWN",
+              current: currentServerTime,
+            }},
+            {{
+              label: "Server Checked At",
+              utc: status.checked_at_utc || "UNKNOWN",
+              local: status.server_time_local || "UNKNOWN",
+              current: currentServerTime,
+            }},
+          ];
+
+          renderTimeRows(rows);
+
+          const summary = document.getElementById("status-updated-summary");
+          if (summary) {{
+            summary.textContent = `${{rows[0].utc}} | ${{rows[0].local}}`;
+          }}
+
+          const live = document.getElementById("current-server-time-live");
+          if (live) {{
+            live.textContent = currentServerTime;
+          }}
+        }} catch (error) {{
+          const body = document.getElementById("status-time-table-body");
+          if (body) {{
+            body.innerHTML = `
+              <tr>
+                <th scope="row">Time Data</th>
+                <td>UNKNOWN</td>
+                <td>UNKNOWN</td>
+                <td class="current-server-time-cell">UNKNOWN</td>
+              </tr>
+            `;
+          }}
+          const live = document.getElementById("current-server-time-live");
+          if (live) {{
+            live.textContent = "UNKNOWN";
+          }}
+        }}
+      }}
+
+      loadStatusTimeData();
+    </script>
   </body>
 </html>
 """

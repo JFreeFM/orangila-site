@@ -341,6 +341,41 @@ h1 {
   font-size: 0.88rem;
 }
 
+.status-restart-times {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.status-restart-title {
+  margin: 0 0 10px;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #ffc7c7;
+}
+
+.status-restart-line {
+  margin: 0;
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  line-height: 1.6;
+  color: rgba(243, 244, 234, 0.92);
+}
+
+.status-restart-line + .status-restart-line {
+  margin-top: 4px;
+}
+
+.status-restart-label {
+  min-width: 126px;
+  color: #ffffff;
+  font-weight: 700;
+}
+
 .seo-copy {
   margin-top: 18px;
   padding: 20px 22px;
@@ -432,6 +467,90 @@ h1 {
   color: var(--text);
 }
 
+.status-time-card {
+  margin-top: 18px;
+}
+
+.status-time-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.status-time-note {
+  margin: 0;
+  max-width: 42rem;
+  color: rgba(243, 244, 234, 0.82);
+  line-height: 1.6;
+}
+
+.status-time-live {
+  min-width: 250px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.status-time-live-label {
+  margin: 0;
+  font-size: 0.76rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #ffc7c7;
+}
+
+.status-time-live-value {
+  margin: 8px 0 0;
+  font-family: "Syne", sans-serif;
+  font-size: 1.2rem;
+  line-height: 1.15;
+  color: #ffffff;
+}
+
+.status-time-table-wrap {
+  margin-top: 18px;
+  overflow-x: auto;
+}
+
+.status-time-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 720px;
+}
+
+.status-time-table th,
+.status-time-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: left;
+  vertical-align: top;
+}
+
+.status-time-table thead th {
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #ffc7c7;
+}
+
+.status-time-table tbody th,
+.status-time-table tbody td {
+  font-size: 0.98rem;
+  color: rgba(243, 244, 234, 0.92);
+}
+
+.status-time-table tbody tr:last-child th,
+.status-time-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.current-server-time-cell {
+  color: #ffffff;
+  font-weight: 700;
+}
+
 .status-columns {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-top: 18px;
@@ -470,6 +589,16 @@ h1 {
   .status-summary-grid,
   .status-columns {
     grid-template-columns: 1fr;
+  }
+
+  .status-time-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .status-time-live {
+    width: 100%;
+    min-width: 0;
   }
 
   .status-head {
