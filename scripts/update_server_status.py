@@ -55,6 +55,9 @@ class StatusPayload:
             "state": self.status,
             "label": self.label,
             "detail": self.detail,
+            "checked_at_utc": self.checked_at_utc,
+            "server_time_utc": self.server_time_utc,
+            "server_time_local": self.server_time_local,
             "next_restart_local": self.next_restart_local,
         }
 
@@ -109,11 +112,11 @@ def next_restart(now_local: datetime) -> datetime:
 
 
 def format_utc_label(value: datetime) -> str:
-    return value.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    return value.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
 
 def format_local_label(value: datetime) -> str:
-    return value.astimezone(LOCAL_TZ).strftime("%Y-%m-%d %H:%M %Z")
+    return value.astimezone(LOCAL_TZ).strftime("%Y-%m-%d %H:%M:%S %Z")
 
 
 def base_payload_fields(now_utc: datetime, next_restart_local: datetime) -> dict[str, str]:

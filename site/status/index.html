@@ -27,7 +27,7 @@
           <div class="status-summary-grid">
             <section>
               <h2>Feedback Window</h2>
-              <p>2026-03-22 to 2026-03-23</p>
+              <p>2026-03-24 to 2026-03-25</p>
             </section>
             <section>
               <h2>Based On</h2>
@@ -35,7 +35,7 @@
             </section>
             <section>
               <h2>Updated</h2>
-              <p id="status-updated-summary">2026-03-23 11:54 UTC</p>
+              <p id="status-updated-summary">2026-03-25 08:20 UTC</p>
             </section>
           </div>
         </section>
@@ -49,7 +49,7 @@
               </p>
             </div>
             <div class="status-time-live">
-              <p class="status-time-live-label">Current Server Time (live since last sync)</p>
+              <p class="status-time-live-label">Current Server Time</p>
               <p class="status-time-live-value" id="current-server-time-live">Loading...</p>
             </div>
           </div>
@@ -79,75 +79,39 @@
           <article class="status-card">
             <h2>Recently Fixed</h2>
             <ul class="status-list">
+  <li>Krona trader board placement fixed (2026-03-26)</li>
   <li>Improved economy balance (2026-03-23)</li>
-  <li><a href="https://discord.gg/SZdwUpmTXp" target="_blank" rel="noopener">Discord</a> restart warnings now post before scheduled restarts (2026-03-21)</li>
+  <li>Discord restart warnings now post before scheduled restarts (2026-03-21)</li>
   <li>The broken Krona trader survivor issue was removed (2026-03-17)</li>
-  <li>Krona trading now uses stable signs and marker boards (2026-03-17)</li>
 </ul>
           </article>
 
           <article class="status-card">
             <h2>Known Issues</h2>
-            <ul class="status-list">
-  <li>Zombie hit registration delays/freezing near Novy Sobor and Staroye</li>
-  <li>Trader UI closes unexpectedly during rapid scrolling</li>
-  <li>Zombie synchronization failures in high-traffic areas</li>
-  <li>New player onboarding confusion</li>
-</ul>
+            <p class="status-empty">No major player-facing issues are listed right now.</p>
           </article>
 
           <article class="status-card">
             <h2>In Progress</h2>
-            <ul class="status-list">
-  <li>Improve the starter guide so new players can get in faster.</li>
-  <li>Tune trader pricing for basic repair items.</li>
-  <li>Improve zombie performance and stability around busy areas like Novy Sobor and Staroye.</li>
-  <li>Improve trader menu stability during fast scrolling.</li>
-</ul>
+            <p class="status-empty">No active public items are listed right now.</p>
           </article>
 
           <article class="status-card">
             <h2>Planned / Requested</h2>
-            <ul class="status-list">
-  <li>Reduce trader prices for basic repair items</li>
-  <li>Starter guide panel for new players (<a href="https://discord.gg/SZdwUpmTXp" target="_blank" rel="noopener">Discord</a> and in-game)</li>
-</ul>
+            <p class="status-empty">No requested items are listed right now.</p>
           </article>
         </section>
 
         <section class="seo-copy status-footnote">
           <h2>How To Help</h2>
           <p>
-            Found a bug or have an idea? Join <a href="https://discord.gg/SZdwUpmTXp" target="_blank" rel="noopener">Discord</a> and post it in bug reports or suggestions.
+            Found a bug or have an idea? Join Discord and post it in bug reports or suggestions.
           </p>
         </section>
       </main>
     </div>
     <script>
-      function parseServerLocalTime(value) {
-        if (!value) {
-          return null;
-        }
-
-        const match = String(value).trim().match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}) (CET|CEST)$/);
-        if (!match) {
-          return null;
-        }
-
-        const [, year, month, day, hour, minute, zone] = match;
-        const offsetHours = zone === "CEST" ? 2 : 1;
-        const utcMillis = Date.UTC(
-          Number(year),
-          Number(month) - 1,
-          Number(day),
-          Number(hour) - offsetHours,
-          Number(minute),
-          0,
-        );
-        return new Date(utcMillis);
-      }
-
-      function formatLiveServerTime(date) {
+      function formatAmsterdamLabel(date) {
         const zonePart = new Intl.DateTimeFormat("en-GB", {
           timeZone: "Europe/Amsterdam",
           timeZoneName: "shortOffset",
@@ -171,24 +135,14 @@
         return `${map.year}-${map.month}-${map.day} ${map.hour}:${map.minute}:${map.second} ${zone}`;
       }
 
-      function startLiveServerClock(initialValue) {
+      function startLiveServerClock() {
         const live = document.getElementById("current-server-time-live");
         if (!live) {
           return;
         }
 
-        const startDate = parseServerLocalTime(initialValue);
-        if (!startDate) {
-          live.textContent = initialValue || "UNKNOWN";
-          return;
-        }
-
-        const clientStart = Date.now();
-
         function tick() {
-          const elapsedMs = Date.now() - clientStart;
-          const currentDate = new Date(startDate.getTime() + elapsedMs);
-          const text = formatLiveServerTime(currentDate);
+          const text = formatAmsterdamLabel(new Date());
           live.textContent = text;
           document.querySelectorAll(".current-server-time-cell").forEach((cell) => {
             cell.textContent = text;
@@ -251,7 +205,7 @@
             summary.textContent = `${rows[0].utc} | ${rows[0].local}`;
           }
 
-          startLiveServerClock(currentServerTime);
+          startLiveServerClock();
         } catch (error) {
           const body = document.getElementById("status-time-table-body");
           if (body) {
@@ -264,7 +218,7 @@
               </tr>
             `;
           }
-          startLiveServerClock("UNKNOWN");
+          startLiveServerClock();
         }
       }
 

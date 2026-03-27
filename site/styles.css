@@ -512,6 +512,7 @@ h1 {
 .status-time-table-wrap {
   margin-top: 18px;
   overflow-x: auto;
+  max-width: 100%;
 }
 
 .status-time-table {
@@ -539,6 +540,7 @@ h1 {
 .status-time-table tbody td {
   font-size: 0.98rem;
   color: rgba(243, 244, 234, 0.92);
+  overflow-wrap: anywhere;
 }
 
 .status-time-table tbody tr:last-child th,
@@ -575,6 +577,55 @@ h1 {
 
 .status-footnote {
   margin-top: 18px;
+}
+
+@media (max-width: 760px) {
+  .status-time-table {
+    min-width: 0;
+  }
+
+  .status-time-table thead {
+    display: none;
+  }
+
+  .status-time-table,
+  .status-time-table tbody,
+  .status-time-table tr,
+  .status-time-table th,
+  .status-time-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .status-time-table tr {
+    padding: 14px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .status-time-table tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  .status-time-table tbody th,
+  .status-time-table tbody td {
+    padding: 6px 0;
+    border: 0;
+  }
+
+  .status-time-table tbody th {
+    margin-bottom: 6px;
+    color: #ffffff;
+  }
+
+  .status-time-table tbody td::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 2px;
+    font-size: 0.74rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #ffc7c7;
+  }
 }
 
 @media (max-width: 640px) {

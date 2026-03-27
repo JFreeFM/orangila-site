@@ -63,11 +63,15 @@ def plain_title(title: str) -> str:
     return clean_item(title)
 
 
+def normalize_key(text: str) -> str:
+    return clean_item(text).casefold()
+
+
 def distinct(items: list[str]) -> list[str]:
     seen: set[str] = set()
     result: list[str] = []
     for item in items:
-        key = item.casefold()
+        key = normalize_key(item)
         if not item or key in seen:
             continue
         seen.add(key)
@@ -116,6 +120,31 @@ def rewrite_recent_fix(title: str, description: str, date: str) -> str:
     return label
 
 
+RECENT_FIX_TO_KNOWN_ISSUE_ALIASES = {
+    normalize_key("Krona trader board placement fixed"): {
+        normalize_key("Misplaced car trader sign in Krona City"),
+        normalize_key("Reposition car trader sign behind counter in Krona City"),
+        normalize_key("Adjust car trader board coordinates in Krona City to place it behind the counter as intended"),
+    },
+    normalize_key("Krona trader survivor issue removed"): {
+        normalize_key("Misplaced car trader sign in Krona City"),
+    },
+    normalize_key("Krona trader fallback switched to signs and marker boards"): {
+        normalize_key("Misplaced car trader sign in Krona City"),
+    },
+}
+
+
+def resolved_issue_keys_from_recent_fixes(items: list[dict[str, Any]]) -> set[str]:
+    resolved: set[str] = set()
+    for item in items:
+        title_key = normalize_key(str(item.get("title") or ""))
+        if not title_key:
+            continue
+        resolved.update(RECENT_FIX_TO_KNOWN_ISSUE_ALIASES.get(title_key, set()))
+    return resolved
+
+
 def map_public_sections(report: dict[str, Any]) -> dict[str, Any]:
     top_bugs = report.get("top_bugs") if isinstance(report.get("top_bugs"), list) else []
     top_requests = report.get("top_feature_requests") if isinstance(report.get("top_feature_requests"), list) else []
@@ -144,10 +173,14 @@ def map_public_sections(report: dict[str, Any]) -> dict[str, Any]:
     in_progress = [rewrite_progress_item(str(item)) for item in quick_wins[:3]] + [
         rewrite_progress_item(str(item)) for item in actions[:2]
     ]
-    in_progress = [item for item in distinct(in_progress) if not is_completed_item(item)]
-
     recent_fixes_raw = load_json_array(RECENT_FIXES_PATH)
     recent_fixes_raw.sort(key=lambda item: str(item.get("date") or ""), reverse=True)
+    resolved_issue_keys = resolved_issue_keys_from_recent_fixes(recent_fixes_raw)
+    in_progress = [
+        item for item in distinct(in_progress)
+        if not is_completed_item(item) and normalize_key(item) not in resolved_issue_keys
+    ]
+
     recently_fixed = []
     for item in recent_fixes_raw[:4]:
         title = str(item.get("title") or "")
@@ -174,11 +207,17 @@ def map_public_sections(report: dict[str, Any]) -> dict[str, Any]:
         except ValueError:
             generated_at = generated_at_raw
 
+    all_known_issues = distinct(known_issues + recurring_issue_titles)
+    known_issues_public = [
+        item for item in all_known_issues
+        if normalize_key(item) not in resolved_issue_keys
+    ]
+
     return {
         "reporting_period": reporting_period,
         "generated_at": generated_at,
         "generated_at_local": generated_at_local,
-        "known_issues": distinct(known_issues + recurring_issue_titles),
+        "known_issues": known_issues_public,
         "in_progress": in_progress,
         "planned_requested": planned_requested,
         "recently_fixed": recently_fixed,
@@ -305,6 +344,48 @@ def render_page(public_data: dict[str, Any]) -> str:
       </main>
     </div>
     <script>
+      function formatAmsterdamLabel(date) {{
+        const zonePart = new Intl.DateTimeFormat("en-GB", {{
+          timeZone: "Europe/Amsterdam",
+          timeZoneName: "shortOffset",
+        }})
+          .formatToParts(date)
+          .find((part) => part.type === "timeZoneName");
+
+        const rawZone = zonePart ? zonePart.value : "";
+        const zone = rawZone === "GMT+2" ? "CEST" : rawZone === "GMT+1" ? "CET" : "UNKNOWN";
+        const parts = new Intl.DateTimeFormat("en-GB", {{
+          timeZone: "Europe/Amsterdam",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false,
+        }}).formatToParts(date);
+        const map = Object.fromEntries(parts.filter((part) => part.type !== "literal").map((part) => [part.type, part.value]));
+        return `${{map.year}}-${{map.month}}-${{map.day}} ${{map.hour}}:${{map.minute}}:${{map.second}} ${{zone}}`;
+      }}
+
+      function startLiveServerClock() {{
+        const live = document.getElementById("current-server-time-live");
+        if (!live) {{
+          return;
+        }}
+
+        function tick() {{
+          const text = formatAmsterdamLabel(new Date());
+          live.textContent = text;
+          document.querySelectorAll(".current-server-time-cell").forEach((cell) => {{
+            cell.textContent = text;
+          }});
+        }}
+
+        tick();
+        window.setInterval(tick, 1000);
+      }}
+
       function renderTimeRows(rows) {{
         const body = document.getElementById("status-time-table-body");
         if (!body) {{
@@ -357,10 +438,7 @@ def render_page(public_data: dict[str, Any]) -> str:
             summary.textContent = `${{rows[0].utc}} | ${{rows[0].local}}`;
           }}
 
-          const live = document.getElementById("current-server-time-live");
-          if (live) {{
-            live.textContent = currentServerTime;
-          }}
+          startLiveServerClock();
         }} catch (error) {{
           const body = document.getElementById("status-time-table-body");
           if (body) {{
@@ -373,10 +451,7 @@ def render_page(public_data: dict[str, Any]) -> str:
               </tr>
             `;
           }}
-          const live = document.getElementById("current-server-time-live");
-          if (live) {{
-            live.textContent = "UNKNOWN";
-          }}
+          startLiveServerClock();
         }}
       }}
 
