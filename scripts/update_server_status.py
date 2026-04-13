@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import re
 import subprocess
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -19,9 +20,13 @@ STATUS_JSON = SITE_DIR / "status.json"
 DEPLOY_SCRIPT = ROOT / "scripts" / "deploy_transip.sh"
 DEFAULT_DAYZ_ENV = ROOT.parent / "dayzserver" / ".env.dayz-restart"
 STATE_CACHE = ROOT / ".server-status-core.json"
+STATUS_MEMORY = ROOT / ".status-memory.json"
 LOCAL_TZ = ZoneInfo("Europe/Amsterdam")
 RESTART_HOURS = (0, 5, 10, 15, 20)
 RESTART_SOON_MINUTES = 15
+DAYZ_QUERY_PORT = 2302
+ONLINE_CONFIRMATIONS = 2
+OFFLINE_CONFIRMATIONS = 2
 
 
 @dataclass
@@ -62,6 +67,16 @@ class StatusPayload:
         }
 
 
+@dataclass
+class ServerSignals:
+    service_active: bool
+    process_running: bool
+    port_open: bool
+    pids: list[int]
+    service_output: str
+    port_matches: list[str]
+
+
 def dayz_env_path() -> Path:
     override = os.environ.get("DAYZ_RESTART_ENV_FILE", "").strip()
     if override:
@@ -96,6 +111,118 @@ def is_dayz_active(service_name: str) -> bool:
         check=False,
     )
     return proc.returncode == 0 and proc.stdout.strip() == "active"
+
+
+def service_signal(service_name: str) -> tuple[bool, str]:
+    proc = subprocess.run(
+        ["systemctl", "--user", "is-active", service_name],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    output = proc.stdout.strip() or proc.stderr.strip() or f"exit={proc.returncode}"
+    return proc.returncode == 0 and proc.stdout.strip() == "active", output
+
+
+def dayz_processes() -> list[int]:
+    proc = subprocess.run(
+        ["pgrep", "-f", "^./DayZServer"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if proc.returncode not in (0, 1):
+        return []
+    pids: list[int] = []
+    for line in proc.stdout.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            pids.append(int(line))
+        except ValueError:
+            continue
+    return pids
+
+
+def udp_port_open(port: int) -> tuple[bool, list[str]]:
+    proc = subprocess.run(
+        ["ss", "-lun"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if proc.returncode != 0:
+        return False, []
+    pattern = re.compile(rf"(^|[^0-9]){port}([^0-9]|$)")
+    matches = [line.strip() for line in proc.stdout.splitlines() if f":{port}" in line and pattern.search(line)]
+    return bool(matches), matches
+
+
+def collect_server_signals(service_name: str, port: int) -> ServerSignals:
+    service_active, service_output = service_signal(service_name)
+    pids = dayz_processes()
+    port_open, port_matches = udp_port_open(port)
+    return ServerSignals(
+        service_active=service_active,
+        process_running=bool(pids),
+        port_open=port_open,
+        pids=pids,
+        service_output=service_output,
+        port_matches=port_matches,
+    )
+
+
+def load_status_memory() -> dict[str, Any]:
+    if not STATUS_MEMORY.is_file():
+        return {
+            "stable_online": False,
+            "success_streak": 0,
+            "failure_streak": 0,
+            "last_raw_online": False,
+            "last_reason": "uninitialized",
+        }
+    try:
+        data = json.loads(STATUS_MEMORY.read_text(encoding="utf-8"))
+    except Exception:
+        return {
+            "stable_online": False,
+            "success_streak": 0,
+            "failure_streak": 0,
+            "last_raw_online": False,
+            "last_reason": "memory-read-failed",
+        }
+    return {
+        "stable_online": bool(data.get("stable_online", False)),
+        "success_streak": int(data.get("success_streak", 0)),
+        "failure_streak": int(data.get("failure_streak", 0)),
+        "last_raw_online": bool(data.get("last_raw_online", False)),
+        "last_reason": str(data.get("last_reason", "unknown")),
+        "last_checked_utc": str(data.get("last_checked_utc", "")),
+    }
+
+
+def write_status_memory(memory: dict[str, Any]) -> None:
+    STATUS_MEMORY.write_text(json.dumps(memory, indent=2) + "\n", encoding="utf-8")
+
+
+def update_availability_memory(memory: dict[str, Any], raw_online: bool, reason: str, now_utc: datetime) -> bool:
+    if raw_online:
+        memory["success_streak"] = int(memory.get("success_streak", 0)) + 1
+        memory["failure_streak"] = 0
+        if not bool(memory.get("stable_online", False)) and memory["success_streak"] >= ONLINE_CONFIRMATIONS:
+            memory["stable_online"] = True
+    else:
+        memory["failure_streak"] = int(memory.get("failure_streak", 0)) + 1
+        memory["success_streak"] = 0
+        if bool(memory.get("stable_online", False)) and memory["failure_streak"] >= OFFLINE_CONFIRMATIONS:
+            memory["stable_online"] = False
+
+    memory["last_raw_online"] = raw_online
+    memory["last_reason"] = reason
+    memory["last_checked_utc"] = format_utc_label(now_utc)
+    write_status_memory(memory)
+    return bool(memory.get("stable_online", False))
 
 
 def next_restart(now_local: datetime) -> datetime:
@@ -149,8 +276,18 @@ def build_payload() -> StatusPayload:
     next_restart_local = next_restart(now_local)
     shared = base_payload_fields(now_utc, next_restart_local)
     minutes_until_restart = max(0, math.ceil((next_restart_local - now_local).total_seconds() / 60.0))
+    signals = collect_server_signals(service_name, DAYZ_QUERY_PORT)
+    raw_online = signals.service_active and signals.process_running and signals.port_open
+    reason = (
+        f"service_active={signals.service_active} service_output={signals.service_output!r} "
+        f"process_running={signals.process_running} pids={signals.pids} "
+        f"port_open={signals.port_open} port={DAYZ_QUERY_PORT} port_matches={signals.port_matches}"
+    )
+    memory = load_status_memory()
+    stable_online = update_availability_memory(memory, raw_online, reason, now_utc)
+    log(f"signal-check {reason} stable_online={stable_online} streaks={memory['success_streak']}/{memory['failure_streak']}")
 
-    if not is_dayz_active(service_name):
+    if not stable_online:
         return StatusPayload(
             status="offline",
             label="Offline",

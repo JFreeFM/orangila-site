@@ -1,0 +1,8 @@
+{
+  "stable_online": true,
+  "success_streak": 157,
+  "failure_streak": 0,
+  "last_raw_online": true,
+  "last_reason": "service_active=True service_output='active' process_running=True pids=[1416519] port_open=True port=2302 port_matches=['UNCONN 0      0                                  0.0.0.0:2302       0.0.0.0:*']",
+  "last_checked_utc": "2026-04-13 10:48:54 UTC"
+}
